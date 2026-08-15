@@ -105,7 +105,7 @@ function Index() {
   if (!myRoom || isChangingRoom) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6 animate-in fade-in duration-500">
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">Bem-vinda!</h1>
+        <h1 className="text-3xl font-bold text-slate-900 mb-2">Selecione seu Quarto — Ala 2 Control</h1>
         <p className="text-slate-600 mb-8 text-center">Para começar, selecione o seu quarto da Ala 2:</p>
         <div className="grid grid-cols-2 gap-4 w-full max-w-xs">
           {ROOMS.map((room) => (
@@ -218,7 +218,7 @@ function Index() {
           <div className="bg-primary p-2 rounded-lg text-white">
             <LayoutDashboard className="w-5 h-5" />
           </div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Ala 2 Control</h1>
+          <h1 className="text-base font-bold text-slate-900 tracking-tight leading-tight">Ala 2 Control<span className="block text-[11px] font-medium text-slate-500">Escala de Limpeza</span></h1>
         </div>
         <Button variant="ghost" size="sm" onClick={() => setIsChangingRoom(true)} className="text-slate-500 hover:text-primary">
           <RotateCcw className="w-4 h-4 mr-2" />
