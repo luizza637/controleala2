@@ -3,9 +3,9 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CheckCircle2, AlertCircle, Clock, RotateCcw, History, LayoutDashboard } from "lucide-react";
+import { CheckCircle2, AlertCircle, Clock, RotateCcw, History, LayoutDashboard, Calendar } from "lucide-react";
 import { toast } from "sonner";
-import { format, startOfWeek, addDays, isSameDay, isAfter, isBefore, subDays, parseISO } from "date-fns";
+import { format, startOfWeek, addDays, isSameDay, isAfter, isBefore, subDays, parseISO, nextDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -148,6 +148,49 @@ function Index() {
 
   const status = getStatus();
 
+  // Logic for Future Schedule
+  const getFutureSchedule = () => {
+    const schedule = [];
+    let lastRoom = lastCleaning?.room_number || 10;
+    
+    // If current cleaning is completed, the rotation already advanced for the "current" slot
+    // but for the agenda we want to show the next ones.
+    let currentResponsible = responsibleRoom;
+    
+    let checkDate = new Date(scheduledDay);
+    // If today is cleaning day and it's already completed, the "next" in agenda should be the next scheduled day
+    if (isCompleted || isAfter(now, scheduledDay)) {
+      // Find the next cleaning day
+      let nextD = addDays(checkDate, 1);
+      while (!CLEANING_DAYS.includes(nextD.getDay())) {
+        nextD = addDays(nextD, 1);
+      }
+      checkDate = nextD;
+    } else {
+      // If not completed and it's today or future, start from scheduledDay
+    }
+
+    for (let i = 0; i < 6; i++) {
+      schedule.push({
+        date: new Date(checkDate),
+        room: currentResponsible
+      });
+      
+      // Advance room
+      currentResponsible = ((currentResponsible - 6 + 1) % 5) + 6;
+      
+      // Advance to next cleaning day
+      let nextD = addDays(checkDate, 1);
+      while (!CLEANING_DAYS.includes(nextD.getDay())) {
+        nextD = addDays(nextD, 1);
+      }
+      checkDate = nextD;
+    }
+    return schedule;
+  };
+
+  const futureSchedule = getFutureSchedule();
+
   return (
     <div className="min-h-screen bg-slate-50 pb-10 font-sans selection:bg-primary/20">
       {/* Header */}
@@ -220,6 +263,39 @@ function Index() {
           <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
             <p className="text-xs text-slate-500 font-bold uppercase mb-1">Dias</p>
             <p className="text-sm font-semibold text-slate-800">Segundas e Quintas</p>
+          </div>
+        </div>
+
+        {/* Future Schedule (Agenda) */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-slate-800 px-1">
+            <Calendar className="w-5 h-5 text-primary" />
+            <h2 className="font-bold">Próximas Limpezas</h2>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="divide-y divide-slate-100">
+              {futureSchedule.map((item, idx) => (
+                <div key={idx} className="p-4 flex justify-between items-center hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-slate-100 flex flex-col items-center justify-center text-slate-500 font-bold text-[10px] uppercase leading-none">
+                      <span>{format(item.date, "MMM", { locale: ptBR })}</span>
+                      <span className="text-base text-slate-700">{format(item.date, "dd")}</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">Quarto {item.room}</p>
+                      <p className="text-xs text-slate-500 capitalize">
+                        {format(item.date, "eeee", { locale: ptBR })}
+                      </p>
+                    </div>
+                  </div>
+                  {idx === 0 && !isCompleted && isCleaningDay && (
+                    <span className="text-[10px] font-bold bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full uppercase tracking-wider">
+                      Hoje
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
