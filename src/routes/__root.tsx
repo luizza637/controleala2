@@ -77,14 +77,22 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Ala 2 Control — Escala de Limpeza" },
+      {
+        name: "description",
+        content:
+          "Controle a escala de limpeza da Ala 2 em tempo real: veja quem é o quarto responsável, marque a limpeza como concluída e acompanhe o histórico.",
+      },
+      { name: "author", content: "Ala 2 Control" },
+      { property: "og:site_name", content: "Ala 2 Control" },
+      { property: "og:title", content: "Ala 2 Control — Escala de Limpeza" },
+      {
+        property: "og:description",
+        content:
+          "Acompanhe em tempo real a escala de limpeza dos quartos 6 a 10 da Ala 2, com status, histórico e próximas datas.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
@@ -102,7 +110,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <head>
         <HeadContent />
       </head>
