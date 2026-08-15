@@ -11,6 +11,25 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/")({
   component: Index,
+  head: () => ({
+    meta: [
+      { title: "Ala 2 Control — Escala de Limpeza dos Quartos 6 a 10" },
+      {
+        name: "description",
+        content:
+          "Veja quem é o quarto responsável pela limpeza da Ala 2, marque como concluída e acompanhe o histórico e as próximas datas em tempo real.",
+      },
+      { property: "og:title", content: "Ala 2 Control — Escala de Limpeza" },
+      {
+        property: "og:description",
+        content:
+          "Escala de limpeza da Ala 2 em tempo real: responsável da vez, status, próximas datas e histórico dos quartos 6 a 10.",
+      },
+      { property: "og:url", content: "https://controleala2.lovable.app/" },
+      { property: "og:type", content: "website" },
+    ],
+    links: [{ rel: "canonical", href: "https://controleala2.lovable.app/" }],
+  }),
 });
 
 const ROOMS = [6, 7, 8, 9, 10];
