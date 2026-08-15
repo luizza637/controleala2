@@ -130,14 +130,12 @@ function Index() {
   const getResponsibleRoom = () => {
     if (!lastCleaning) return 6;
     if (isCompleted) {
-        // If today is completed, who was it? lastCleaning.room_number
-        // Who is NEXT?
+        // Se já foi concluído hoje/nesta escala, o PRÓXIMO responsável será:
         return ((lastCleaning.room_number - 6 + 1) % 5) + 6;
     }
-    // If NOT completed, the one who HAS to clean is the last one in sequence after the last COMPLETED one
-    return lastCleaning.room_number; // Simplified: usually it's the one who cleaned last if not completed? 
-    // Wait, let's refine: if not completed today, it's the one who was supposed to clean.
-    // Let's keep it simple for now.
+    // Se ainda não foi concluído e a última limpeza foi do Quarto 8, o responsável ATUAL é o 9.
+    // Mas a lógica geral é: o responsável é sempre o sucessor do último que limpou.
+    return ((lastCleaning.room_number - 6 + 1) % 5) + 6;
   };
 
   const responsibleRoom = getResponsibleRoom();
