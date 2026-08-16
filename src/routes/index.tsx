@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CheckCircle2, AlertCircle, Clock, RotateCcw, History, LayoutDashboard, Calendar } from "lucide-react";
+import { CheckCircle2, AlertCircle, Clock, RotateCcw, History, LayoutDashboard, Calendar, Pause, Play } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfWeek, addDays, isSameDay, isAfter, isBefore, subDays, parseISO, nextDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
