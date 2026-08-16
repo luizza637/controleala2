@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CheckCircle2, AlertCircle, Clock, RotateCcw, History, LayoutDashboard, Calendar } from "lucide-react";
+import { CheckCircle2, AlertCircle, Clock, RotateCcw, History, LayoutDashboard, Calendar, Pause, Play } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfWeek, addDays, isSameDay, isAfter, isBefore, subDays, parseISO, nextDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -57,12 +57,19 @@ function Index() {
   // Realtime subscription
   useEffect(() => {
     const channel = supabase
-      .channel("cleaning_changes")
+      .channel("app_changes")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "cleaning_logs" },
+        { event: "*", schema: "public", table: "cleaning_logs" },
         () => {
           queryClient.invalidateQueries({ queryKey: ["cleaning_logs"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "app_settings" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["app_settings"] });
         }
       )
       .subscribe();
@@ -82,6 +89,40 @@ function Index() {
         .limit(15);
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: appSettings } = useQuery({
+    queryKey: ["app_settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("app_settings" as any)
+        .select("*")
+        .eq("key", "is_paused")
+        .single();
+      if (error) {
+        if (error.code === 'PGRST116') return { value: false };
+        throw error;
+      }
+      return data as any;
+    },
+  });
+
+  const isPaused = appSettings?.value === true;
+
+  const togglePause = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("app_settings" as any)
+        .upsert({ key: "is_paused", value: !isPaused } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(isPaused ? "Aplicativo retomado!" : "Aplicativo pausado para férias!");
+      queryClient.invalidateQueries({ queryKey: ["app_settings"] });
+    },
+    onError: (error) => {
+      toast.error("Erro ao alterar status: " + error.message);
     },
   });
 
@@ -165,7 +206,9 @@ function Index() {
     return { label: "Atrasado", color: "bg-red-500", icon: <AlertCircle className="w-6 h-6" /> };
   };
 
-  const status = getStatus();
+  const status = isPaused 
+    ? { label: "Em Férias", color: "bg-slate-500", icon: <Pause className="w-6 h-6" /> }
+    : getStatus();
 
   // Logic for Future Schedule
   const getFutureSchedule = () => {
@@ -220,10 +263,21 @@ function Index() {
           </div>
           <h1 className="text-base font-bold text-slate-900 tracking-tight leading-tight">Ala 2 Control<span className="block text-[11px] font-medium text-slate-500">Escala de Limpeza</span></h1>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => setIsChangingRoom(true)} className="text-slate-500 hover:text-primary">
-          <RotateCcw className="w-4 h-4 mr-2" />
-          Q. {myRoom}
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => togglePause.mutate()} 
+            className={`${isPaused ? 'text-green-600 hover:text-green-700' : 'text-slate-500 hover:text-red-500'}`}
+          >
+            {isPaused ? <Play className="w-4 h-4 mr-2" /> : <Pause className="w-4 h-4 mr-2" />}
+            {isPaused ? 'Retomar' : 'Férias'}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setIsChangingRoom(true)} className="text-slate-500 hover:text-primary">
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Q. {myRoom}
+          </Button>
+        </div>
       </header>
 
       <main className="max-w-md mx-auto p-4 space-y-6">
@@ -238,11 +292,13 @@ function Index() {
           </CardHeader>
           <CardContent>
             <p className="text-white/90 text-sm font-medium">
-              {isCompleted 
-                ? `Limpo por último pelo Quarto ${lastCleaning?.room_number}`
-                : isCleaningDay 
-                  ? "Hoje é dia de limpeza! Aguardando conclusão." 
-                  : "A última limpeza ainda não foi realizada ou está pendente."}
+              {isPaused
+                ? "O aplicativo está pausado para as férias. A escala voltará ao normal assim que retomado."
+                : isCompleted 
+                  ? `Limpo por último pelo Quarto ${lastCleaning?.room_number}`
+                  : isCleaningDay 
+                    ? "Hoje é dia de limpeza! Aguardando conclusão." 
+                    : "A última limpeza ainda não foi realizada ou está pendente."}
             </p>
           </CardContent>
         </Card>
@@ -261,7 +317,7 @@ function Index() {
               Quarto {responsibleRoom} deve realizar a limpeza {isCleaningDay ? "hoje" : "na próxima data"}.
             </p>
             
-            {!isCompleted && (
+            {!isCompleted && !isPaused && (
               <Button 
                 className="w-full mt-6 h-14 text-lg font-bold shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
                 onClick={() => finishCleaning.mutate()}
@@ -269,6 +325,11 @@ function Index() {
               >
                 {finishCleaning.isPending ? "Salvando..." : "Marcar como Finalizado"}
               </Button>
+            )}
+            {isPaused && (
+              <div className="w-full mt-6 p-4 bg-slate-100 rounded-lg text-slate-500 text-center text-sm font-medium">
+                Limpeza pausada durante as férias.
+              </div>
             )}
           </CardContent>
         </Card>
@@ -307,9 +368,14 @@ function Index() {
                       </p>
                     </div>
                   </div>
-                  {idx === 0 && !isCompleted && isCleaningDay && (
+                  {idx === 0 && !isCompleted && isCleaningDay && !isPaused && (
                     <span className="text-[10px] font-bold bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full uppercase tracking-wider">
                       Hoje
+                    </span>
+                  )}
+                  {isPaused && idx === 0 && (
+                    <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-full uppercase tracking-wider">
+                      Pausado
                     </span>
                   )}
                 </div>
