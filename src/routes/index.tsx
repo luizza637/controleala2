@@ -206,7 +206,9 @@ function Index() {
     return { label: "Atrasado", color: "bg-red-500", icon: <AlertCircle className="w-6 h-6" /> };
   };
 
-  const status = getStatus();
+  const status = isPaused 
+    ? { label: "Em Férias", color: "bg-slate-500", icon: <Pause className="w-6 h-6" /> }
+    : getStatus();
 
   // Logic for Future Schedule
   const getFutureSchedule = () => {
