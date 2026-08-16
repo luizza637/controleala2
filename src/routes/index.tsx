@@ -125,14 +125,6 @@ function Index() {
       toast.error("Erro ao alterar status: " + error.message);
     },
   });
-    onSuccess: () => {
-      toast.success(isPaused ? "Aplicativo retomado!" : "Aplicativo pausado para férias!");
-      queryClient.invalidateQueries({ queryKey: ["app_settings"] });
-    },
-    onError: (error) => {
-      toast.error("Erro ao alterar status: " + error.message);
-    },
-  });
 
   const finishCleaning = useMutation({
     mutationFn: async () => {
