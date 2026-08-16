@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string | null
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
       cleaning_logs: {
         Row: {
           completed_at: string
