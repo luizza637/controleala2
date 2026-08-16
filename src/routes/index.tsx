@@ -317,7 +317,7 @@ function Index() {
               Quarto {responsibleRoom} deve realizar a limpeza {isCleaningDay ? "hoje" : "na próxima data"}.
             </p>
             
-            {!isCompleted && (
+            {!isCompleted && !isPaused && (
               <Button 
                 className="w-full mt-6 h-14 text-lg font-bold shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
                 onClick={() => finishCleaning.mutate()}
@@ -325,6 +325,11 @@ function Index() {
               >
                 {finishCleaning.isPending ? "Salvando..." : "Marcar como Finalizado"}
               </Button>
+            )}
+            {isPaused && (
+              <div className="w-full mt-6 p-4 bg-slate-100 rounded-lg text-slate-500 text-center text-sm font-medium">
+                Limpeza pausada durante as férias.
+              </div>
             )}
           </CardContent>
         </Card>
