@@ -57,12 +57,19 @@ function Index() {
   // Realtime subscription
   useEffect(() => {
     const channel = supabase
-      .channel("cleaning_changes")
+      .channel("app_changes")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "cleaning_logs" },
+        { event: "*", schema: "public", table: "cleaning_logs" },
         () => {
           queryClient.invalidateQueries({ queryKey: ["cleaning_logs"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "app_settings" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["app_settings"] });
         }
       )
       .subscribe();
