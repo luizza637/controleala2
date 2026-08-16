@@ -92,6 +92,40 @@ function Index() {
     },
   });
 
+  const { data: appSettings } = useQuery({
+    queryKey: ["app_settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("app_settings")
+        .select("*")
+        .eq("key", "is_paused")
+        .single();
+      if (error) {
+        if (error.code === 'PGRST116') return { value: false };
+        throw error;
+      }
+      return data;
+    },
+  });
+
+  const isPaused = appSettings?.value === true;
+
+  const togglePause = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("app_settings")
+        .upsert({ key: "is_paused", value: !isPaused });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(isPaused ? "Aplicativo retomado!" : "Aplicativo pausado para férias!");
+      queryClient.invalidateQueries({ queryKey: ["app_settings"] });
+    },
+    onError: (error) => {
+      toast.error("Erro ao alterar status: " + error.message);
+    },
+  });
+
   const finishCleaning = useMutation({
     mutationFn: async () => {
       if (!myRoom) throw new Error("Quarto não selecionado");
