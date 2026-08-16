@@ -263,10 +263,21 @@ function Index() {
           </div>
           <h1 className="text-base font-bold text-slate-900 tracking-tight leading-tight">Ala 2 Control<span className="block text-[11px] font-medium text-slate-500">Escala de Limpeza</span></h1>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => setIsChangingRoom(true)} className="text-slate-500 hover:text-primary">
-          <RotateCcw className="w-4 h-4 mr-2" />
-          Q. {myRoom}
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => togglePause.mutate()} 
+            className={`${isPaused ? 'text-green-600 hover:text-green-700' : 'text-slate-500 hover:text-red-500'}`}
+          >
+            {isPaused ? <Play className="w-4 h-4 mr-2" /> : <Pause className="w-4 h-4 mr-2" />}
+            {isPaused ? 'Retomar' : 'Férias'}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setIsChangingRoom(true)} className="text-slate-500 hover:text-primary">
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Q. {myRoom}
+          </Button>
+        </div>
       </header>
 
       <main className="max-w-md mx-auto p-4 space-y-6">
