@@ -368,9 +368,14 @@ function Index() {
                       </p>
                     </div>
                   </div>
-                  {idx === 0 && !isCompleted && isCleaningDay && (
+                  {idx === 0 && !isCompleted && isCleaningDay && !isPaused && (
                     <span className="text-[10px] font-bold bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full uppercase tracking-wider">
                       Hoje
+                    </span>
+                  )}
+                  {isPaused && idx === 0 && (
+                    <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-full uppercase tracking-wider">
+                      Pausado
                     </span>
                   )}
                 </div>
