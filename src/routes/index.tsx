@@ -96,7 +96,7 @@ function Index() {
     queryKey: ["app_settings"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("app_settings")
+        .from("app_settings" as any)
         .select("*")
         .eq("key", "is_paused")
         .single();
@@ -104,7 +104,7 @@ function Index() {
         if (error.code === 'PGRST116') return { value: false };
         throw error;
       }
-      return data;
+      return data as any;
     },
   });
 
@@ -113,10 +113,18 @@ function Index() {
   const togglePause = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
-        .from("app_settings")
-        .upsert({ key: "is_paused", value: !isPaused });
+        .from("app_settings" as any)
+        .upsert({ key: "is_paused", value: !isPaused } as any);
       if (error) throw error;
     },
+    onSuccess: () => {
+      toast.success(isPaused ? "Aplicativo retomado!" : "Aplicativo pausado para férias!");
+      queryClient.invalidateQueries({ queryKey: ["app_settings"] });
+    },
+    onError: (error) => {
+      toast.error("Erro ao alterar status: " + error.message);
+    },
+  });
     onSuccess: () => {
       toast.success(isPaused ? "Aplicativo retomado!" : "Aplicativo pausado para férias!");
       queryClient.invalidateQueries({ queryKey: ["app_settings"] });
