@@ -292,11 +292,13 @@ function Index() {
           </CardHeader>
           <CardContent>
             <p className="text-white/90 text-sm font-medium">
-              {isCompleted 
-                ? `Limpo por último pelo Quarto ${lastCleaning?.room_number}`
-                : isCleaningDay 
-                  ? "Hoje é dia de limpeza! Aguardando conclusão." 
-                  : "A última limpeza ainda não foi realizada ou está pendente."}
+              {isPaused
+                ? "O aplicativo está pausado para as férias. A escala voltará ao normal assim que retomado."
+                : isCompleted 
+                  ? `Limpo por último pelo Quarto ${lastCleaning?.room_number}`
+                  : isCleaningDay 
+                    ? "Hoje é dia de limpeza! Aguardando conclusão." 
+                    : "A última limpeza ainda não foi realizada ou está pendente."}
             </p>
           </CardContent>
         </Card>
