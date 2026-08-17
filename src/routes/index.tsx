@@ -172,6 +172,7 @@ function Index() {
   const getMostRecentCleaningDay = () => {
     let d = new Date(now);
     d.setHours(0, 0, 0, 0);
+    // Find the current or previous Monday (1) or Thursday (4)
     while (!CLEANING_DAYS.includes(d.getDay())) {
       d = subDays(d, 1);
     }
@@ -213,23 +214,23 @@ function Index() {
   // Logic for Future Schedule
   const getFutureSchedule = () => {
     const schedule = [];
-    let lastRoom = lastCleaning?.room_number || 10;
     
-    // If current cleaning is completed, the rotation already advanced for the "current" slot
-    // but for the agenda we want to show the next ones.
-    let currentResponsible = responsibleRoom;
-    
+    // We start from the most recent scheduled day (which could be today)
     let checkDate = new Date(scheduledDay);
-    // If today is cleaning day and it's already completed, the "next" in agenda should be the next scheduled day
-    if (isCompleted || isAfter(now, scheduledDay)) {
-      // Find the next cleaning day
+    let currentResponsible = responsibleRoom;
+
+    // If today is a cleaning day and it's already completed, the first item in the agenda 
+    // should be the NEXT cleaning day, not today.
+    if (isCompleted) {
+      // Find the next cleaning day after today
       let nextD = addDays(checkDate, 1);
       while (!CLEANING_DAYS.includes(nextD.getDay())) {
         nextD = addDays(nextD, 1);
       }
       checkDate = nextD;
-    } else {
-      // If not completed and it's today or future, start from scheduledDay
+      
+      // Advance room for the future projection
+      currentResponsible = ((responsibleRoom - 6 + 1) % 5) + 6;
     }
 
     for (let i = 0; i < 6; i++) {
