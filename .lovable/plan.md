@@ -6,8 +6,7 @@ O usuário relatou que a ordem dos quartos na escala está incorreta e solicitou
 
 ### 1. Correção da Lógica de Escala (Rotação)
 A escala segue a ordem: 6 -> 7 -> 8 -> 9 -> 10 -> 6...
-A lógica atual tenta prever o próximo com base no último log, mas parece estar se perdendo em casos de atraso ou múltiplas limpezas no mesmo ciclo.
-- Vou ajustar a lógica para identificar o responsável da vez com base no histórico de limpezas concluídas.
+- Ajustar a lógica para identificar o responsável da vez com base no histórico de limpezas concluídas.
 - O responsável ATUAL de um dia de limpeza deve ser o sucessor direto do último quarto que limpou (ciclo 6-10).
 
 ### 2. Restrição de Marcação por Quarto
@@ -26,6 +25,3 @@ A lógica atual tenta prever o próximo com base no último log, mas parece esta
   const canFinish = isCleaningDay && !isCompleted && !isPaused && isMyTurn;
   ```
 - **Feedback Visual**: Se `isCleaningDay && !isCompleted && !isMyTurn`, mostrar um aviso: "Aguardando o Quarto X realizar a limpeza".
-
----
-**Nota:** As datas foram corrigidas na última iteração, mas revisarei se há algum "drift" causado por fusos horários (o usuário está no Brasil/São Paulo).
