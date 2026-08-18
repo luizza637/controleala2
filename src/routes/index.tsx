@@ -200,12 +200,6 @@ function Index() {
     // O responsável ATUAL é o próximo na escala.
     const isDone = isSameDay(lastDate, scheduledDay) || isAfter(lastDate, scheduledDay);
     
-    if (isDone) {
-      return ((lastRoom - 6 + 1) % 5) + 6;
-    }
-    
-    // Se ainda não foi feita, o responsável é o sucessor do log anterior ao de hoje
-    // Mas simplificando: o responsável é o sucessor do último log.
     return ((lastRoom - 6 + 1) % 5) + 6;
   };
 
