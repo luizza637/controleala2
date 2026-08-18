@@ -187,19 +187,18 @@ function Index() {
   
   const isCompleted = lastCleaningDate && (isSameDay(lastCleaningDate, now) || (isAfter(lastCleaningDate, scheduledDay) && !isBefore(lastCleaningDate, scheduledDay)));
 
-  // Simple Rotation Logic: If room X cleaned last, next is (X-6+1)%5 + 6
+  // Rotação: 6 -> 7 -> 8 -> 9 -> 10 -> 6
   const getResponsibleRoom = () => {
     if (!lastCleaning) return 6;
-    if (isCompleted) {
-        // Se já foi concluído hoje/nesta escala, o PRÓXIMO responsável será:
-        return ((lastCleaning.room_number - 6 + 1) % 5) + 6;
-    }
-    // Se ainda não foi concluído e a última limpeza foi do Quarto 8, o responsável ATUAL é o 9.
-    // Mas a lógica geral é: o responsável é sempre o sucessor do último que limpou.
+    
+    // Se a limpeza de hoje (ou do período atual) já foi concluída, o responsável exibido
+    // deve ser o próximo na escala para a PRÓXIMA data.
+    // Se NÃO foi concluída, o responsável é o sucessor do último log.
     return ((lastCleaning.room_number - 6 + 1) % 5) + 6;
   };
 
   const responsibleRoom = getResponsibleRoom();
+  const isMyTurn = myRoom === responsibleRoom;
 
   const getStatus = () => {
     if (isCompleted) return { label: "Concluído", color: "bg-green-500", icon: <CheckCircle2 className="w-6 h-6" /> };
@@ -319,13 +318,20 @@ function Index() {
             </p>
             
             {!isCompleted && !isPaused && (
-              <Button 
-                className="w-full mt-6 h-14 text-lg font-bold shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
-                onClick={() => finishCleaning.mutate()}
-                disabled={finishCleaning.isPending}
-              >
-                {finishCleaning.isPending ? "Salvando..." : "Marcar como Finalizado"}
-              </Button>
+              <div className="w-full space-y-3 mt-6">
+                {!isMyTurn && (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-xs text-center font-medium animate-in fade-in slide-in-from-top-1">
+                    Apenas o Quarto {responsibleRoom} pode marcar esta limpeza como concluída.
+                  </div>
+                )}
+                <Button 
+                  className="w-full h-14 text-lg font-bold shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
+                  onClick={() => finishCleaning.mutate()}
+                  disabled={finishCleaning.isPending || !isMyTurn}
+                >
+                  {finishCleaning.isPending ? "Salvando..." : "Marcar como Finalizado"}
+                </Button>
+              </div>
             )}
             {isPaused && (
               <div className="w-full mt-6 p-4 bg-slate-100 rounded-lg text-slate-500 text-center text-sm font-medium">
