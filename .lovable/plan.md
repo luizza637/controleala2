@@ -1,22 +1,27 @@
-# Plan - Fix Date and Day Logic
+# Plano - Correção da Escala e Restrição de Marcação
 
-The user reported that the app is showing incorrect dates (e.g., showing the 20th when it's the 17th) and incorrect days of the week (showing Thursday when it's Monday). I will fix the date calculation logic to ensure it correctly identifies "today" and projects the schedule based on the actual current date.
+O usuário relatou que a ordem dos quartos na escala está incorreta e solicitou que apenas o quarto responsável pelo dia consiga marcar a limpeza como concluída.
 
-## Proposed Changes
+## Mudanças Propostas
 
-### Logic Fixes
-- **Correct Current Date:** Ensure `new Date()` is correctly handled in the current timezone and environment.
-- **Cleaning Day Logic:** Refine `getMostRecentCleaningDay` to accurately find the last scheduled date (Monday/Thursday) relative to today.
-- **Future Schedule Projection:**
-    - Fix the starting point for `futureSchedule`. If today is a cleaning day, it should be the first item.
-    - Ensure the logic for "next" cleaning day correctly skips to the next Monday or Thursday.
-    - Verify that room rotation follows the established sequence (6, 7, 8, 9, 10).
+### 1. Correção da Lógica de Escala (Rotação)
+A escala segue a ordem: 6 -> 7 -> 8 -> 9 -> 10 -> 6...
+- Ajustar a lógica para identificar o responsável da vez com base no histórico de limpezas concluídas.
+- O responsável ATUAL de um dia de limpeza deve ser o sucessor direto do último quarto que limpou (ciclo 6-10).
 
-### UI Adjustments
-- Ensure the "Hoje" (Today) badge only appears on actual cleaning days (Mondays and Thursdays).
-- Standardize the date formatting to prevent discrepancies.
+### 2. Restrição de Marcação por Quarto
+- O botão "Marcar como Finalizado" será habilitado **apenas** para o quarto que é o responsável da vez.
+- Se o usuário selecionou o Quarto 8, mas o responsável do dia é o Quarto 9, o botão exibirá uma mensagem informando que apenas o Quarto 9 pode marcar.
 
-## Technical Details
-- The logic in `getMostRecentCleaningDay` was using a `while` loop that might be drifting if the timezone isn't handled correctly or if the starting `d` isn't reset properly.
-- `getFutureSchedule` start point was problematic: it was using `scheduledDay` which is "most recent", but if today is a cleaning day and not yet finished, it should start with "today".
-- I will simplify the "find next cleaning day" logic using a helper function to avoid redundancy.
+### 3. Melhoria na Agenda (Próximas Limpezas)
+- Garantir que a projeção da agenda use as datas corretas (Segundas e Quintas).
+- Alinhar a rotação dos quartos na agenda com a realidade do último log inserido.
+
+## Detalhes Técnicos
+- **`getResponsibleRoom`**: Será a fonte da verdade. Ela pegará o `room_number` do log mais recente e retornará o próximo na sequência `((lastRoom - 6 + 1) % 5) + 6`.
+- **Validação no Componente**: 
+  ```tsx
+  const isMyTurn = myRoom === responsibleRoom;
+  const canFinish = isCleaningDay && !isCompleted && !isPaused && isMyTurn;
+  ```
+- **Feedback Visual**: Se `isCleaningDay && !isCompleted && !isMyTurn`, mostrar um aviso: "Aguardando o Quarto X realizar a limpeza".
