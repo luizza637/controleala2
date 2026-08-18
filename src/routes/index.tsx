@@ -193,12 +193,10 @@ function Index() {
     if (!logs || logs.length === 0) return 6;
     
     const lastLog = logs[0];
+    if (!lastLog) return 6;
+    
     const lastRoom = lastLog.room_number;
     const lastDate = new Date(lastLog.completed_at);
-    
-    // Se a limpeza do período agendado mais recente já foi feita
-    // O responsável ATUAL é o próximo na escala.
-    const isDone = isSameDay(lastDate, scheduledDay) || isAfter(lastDate, scheduledDay);
     
     return ((lastRoom - 6 + 1) % 5) + 6;
   };
@@ -222,6 +220,8 @@ function Index() {
     if (!logs || logs.length === 0) return [];
 
     const lastLog = logs[0];
+    if (!lastLog) return [];
+
     const lastRoom = lastLog.room_number;
     const lastDate = new Date(lastLog.completed_at);
     
