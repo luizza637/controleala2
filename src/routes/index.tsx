@@ -228,8 +228,9 @@ function Index() {
       }
       checkDate = nextD;
       
-      // Advance room for the future projection
-      currentResponsible = ((responsibleRoom - 6 + 1) % 5) + 6;
+      // We do NOT advance the room here because responsibleRoom already 
+      // points to the room for the NEXT cleaning day when the current one is completed.
+      currentResponsible = responsibleRoom;
     }
 
     for (let i = 0; i < 6; i++) {
