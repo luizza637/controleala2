@@ -1,0 +1,2 @@
+DELETE FROM public.cleaning_logs WHERE room_number = 7 AND completed_at > '2026-08-18 00:00:00+00';
+INSERT INTO public.cleaning_logs (room_number, completed_at, status) VALUES (9, '2026-08-17 10:00:00+00', 'concluido');
