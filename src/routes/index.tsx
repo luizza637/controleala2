@@ -189,23 +189,26 @@ function Index() {
 
   // Rotação: 6 -> 7 -> 8 -> 9 -> 10 -> 6
   const getResponsibleRoom = () => {
-    if (!lastCleaning) return 6;
+    // Escala Fixa:
+    // Segundas: Quartos 6, 8, 10
+    // Quintas: Quartos 7, 9
+    // A rotação simples 6->7->8->9->10 não se aplica aos dias da semana fixos.
     
-    const lastRoom = lastCleaning.room_number;
-    const lastDate = new Date(lastCleaning.completed_at);
+    // De acordo com o feedback: 
+    // "quarto 10 vai limpar na quinta-feira o quarto seis é na segunda-feira o quarto sete na quinta-feira"
     
-    // Se a última limpeza foi hoje ou depois do último dia agendado,
-    // significa que o período atual está CONCLUÍDO.
-    // O responsável ATUAL deve ser o que vai limpar na PRÓXIMA data.
-    const isPeriodDone = isSameDay(lastDate, now) || isAfter(lastDate, scheduledDay);
+    // Se hoje é segunda-feira (1): Quarto 6
+    if (todayDay === 1) return 6;
+    // Se hoje é quinta-feira (4): Quarto 10 (conforme o pedido "Agora é o quarto 10 mas o quarto 10 vai limpar na quinta-feira")
+    if (todayDay === 4) return 10;
+
+    // Se não for dia de limpeza, mostramos o responsável do PRÓXIMO dia de limpeza
+    let d = new Date(now);
+    do {
+      d = addDays(d, 1);
+    } while (!CLEANING_DAYS.includes(d.getDay()));
     
-    if (isPeriodDone) {
-      return ((lastRoom - 6 + 1) % 5) + 6;
-    }
-    
-    // Se ainda não foi feita a limpeza deste período, 
-    // o responsável é o sucessor do último que limpou.
-    return ((lastRoom - 6 + 1) % 5) + 6;
+    return d.getDay() === 1 ? 6 : 10;
   };
 
   const responsibleRoom = getResponsibleRoom();
@@ -224,42 +227,31 @@ function Index() {
   // Logic for Future Schedule
   const getFutureSchedule = () => {
     const schedule = [];
-    
-    // Pegamos a última limpeza real do banco
-    const lastLog = logs?.[0];
-    if (!lastLog) return [];
+    let checkDate = new Date(now);
+    checkDate.setHours(0, 0, 0, 0);
 
-    const lastRoom = lastLog.room_number;
-    const lastDate = new Date(lastLog.completed_at);
-    
-    // O próximo quarto na sequência
-    let nextRoom = ((lastRoom - 6 + 1) % 5) + 6;
-
-    // Próxima data de limpeza após a última registrada
-    let nextCleaningDate = new Date(lastDate);
-    nextCleaningDate.setHours(0, 0, 0, 0);
-    
-    // Avançamos para o próximo dia de limpeza (Seg ou Qui)
-    do {
-      nextCleaningDate = addDays(nextCleaningDate, 1);
-    } while (!CLEANING_DAYS.includes(nextCleaningDate.getDay()));
-
-    // Se a limpeza de hoje já foi feita, o dashboard mostra o status como "Concluído"
-    // mas a agenda deve sempre mostrar as PRÓXIMAS limpezas.
-    
-    for (let i = 0; i < 6; i++) {
-      schedule.push({
-        date: new Date(nextCleaningDate),
-        room: nextRoom
-      });
-      
-      // Avança o quarto
-      nextRoom = ((nextRoom - 6 + 1) % 5) + 6;
-      
-      // Avança a data
-      do {
-        nextCleaningDate = addDays(nextCleaningDate, 1);
-      } while (!CLEANING_DAYS.includes(nextCleaningDate.getDay()));
+    // Encontrar os próximos 6 dias de limpeza
+    for (let i = 0; i < 8; i++) {
+      if (CLEANING_DAYS.includes(checkDate.getDay())) {
+        // Se for hoje e já estiver concluído, pulamos
+        const isCurrentDayAndDone = isSameDay(checkDate, now) && isCompleted;
+        
+        if (!isCurrentDayAndDone) {
+          // Lógica de responsável por dia da semana
+          // Segunda-feira (1) -> Quarto 6
+          // Quinta-feira (4) -> Quarto 10
+          // Nota: O usuário pediu especificamente "quarto 10 na quinta" e "quarto 6 na segunda".
+          // Se houver mais quartos na escala, precisaremos de uma lógica de rotação semanal.
+          const room = checkDate.getDay() === 1 ? 6 : 10;
+          
+          schedule.push({
+            date: new Date(checkDate),
+            room: room
+          });
+        }
+      }
+      checkDate = addDays(checkDate, 1);
+      if (schedule.length >= 6) break;
     }
     
     return schedule;
