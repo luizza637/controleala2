@@ -189,12 +189,16 @@ function Index() {
 
   // Rotação: 6 -> 7 -> 8 -> 9 -> 10 -> 6
   const getResponsibleRoom = () => {
-    if (!lastCleaning) return 6;
+    // Se não há logs, começamos pelo 6
+    if (!logs || logs.length === 0) return 6;
     
-    // Se a limpeza de hoje (ou do período atual) já foi concluída, o responsável exibido
-    // deve ser o próximo na escala para a PRÓXIMA data.
-    // Se NÃO foi concluída, o responsável é o sucessor do último log.
-    return ((lastCleaning.room_number - 6 + 1) % 5) + 6;
+    const lastLog = logs[0];
+    if (!lastLog) return 6;
+    
+    const lastRoom = lastLog.room_number;
+    const lastDate = new Date(lastLog.completed_at);
+    
+    return ((lastRoom - 6 + 1) % 5) + 6;
   };
 
   const responsibleRoom = getResponsibleRoom();
@@ -213,41 +217,34 @@ function Index() {
   // Logic for Future Schedule
   const getFutureSchedule = () => {
     const schedule = [];
-    
-    // We start from the most recent scheduled day (which could be today)
-    let checkDate = new Date(scheduledDay);
-    let currentResponsible = responsibleRoom;
+    if (!logs || logs.length === 0) return [];
 
-    // If today is a cleaning day and it's already completed, the first item in the agenda 
-    // should be the NEXT cleaning day, not today.
-    if (isCompleted) {
-      // Find the next cleaning day after today
-      let nextD = addDays(checkDate, 1);
-      while (!CLEANING_DAYS.includes(nextD.getDay())) {
-        nextD = addDays(nextD, 1);
-      }
-      checkDate = nextD;
-      
-      // Advance room for the future projection
-      currentResponsible = ((responsibleRoom - 6 + 1) % 5) + 6;
-    }
+    const lastLog = logs[0];
+    if (!lastLog) return [];
+
+    const lastRoom = lastLog.room_number;
+    const lastDate = new Date(lastLog.completed_at);
+    
+    let nextRoom = ((lastRoom - 6 + 1) % 5) + 6;
+    
+    // Começamos a projetar a partir do dia seguinte à última limpeza
+    let checkDate = new Date(lastDate);
+    checkDate.setHours(0, 0, 0, 0);
 
     for (let i = 0; i < 6; i++) {
+      // Encontra o próximo dia de limpeza
+      do {
+        checkDate = addDays(checkDate, 1);
+      } while (!CLEANING_DAYS.includes(checkDate.getDay()));
+
       schedule.push({
         date: new Date(checkDate),
-        room: currentResponsible
+        room: nextRoom
       });
       
-      // Advance room
-      currentResponsible = ((currentResponsible - 6 + 1) % 5) + 6;
-      
-      // Advance to next cleaning day
-      let nextD = addDays(checkDate, 1);
-      while (!CLEANING_DAYS.includes(nextD.getDay())) {
-        nextD = addDays(nextD, 1);
-      }
-      checkDate = nextD;
+      nextRoom = ((nextRoom - 6 + 1) % 5) + 6;
     }
+    
     return schedule;
   };
 
