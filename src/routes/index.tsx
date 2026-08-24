@@ -98,17 +98,21 @@ function Index() {
       const { data, error } = await supabase
         .from("app_settings" as any)
         .select("*")
-        .eq("key", "is_paused")
-        .single();
-      if (error) {
-        if (error.code === 'PGRST116') return { value: false };
-        throw error;
-      }
-      return data as any;
+        .in("key", ["is_paused", "room_order"]);
+      if (error) throw error;
+      const rows = (data ?? []) as any[];
+      return {
+        isPaused: rows.find((r) => r.key === "is_paused")?.value === true,
+        roomOrder: (rows.find((r) => r.key === "room_order")?.value as number[]) ?? ROOMS,
+      };
     },
   });
 
-  const isPaused = appSettings?.value === true;
+  const isPaused = appSettings?.isPaused === true;
+  const roomOrder: number[] =
+    appSettings?.roomOrder && appSettings.roomOrder.length === 5
+      ? appSettings.roomOrder
+      : ROOMS;
 
   const togglePause = useMutation({
     mutationFn: async () => {
@@ -123,6 +127,26 @@ function Index() {
     },
     onError: (error) => {
       toast.error("Erro ao alterar status: " + error.message);
+    },
+  });
+
+  const swapTurns = useMutation({
+    mutationFn: async (pair: { current: number; next: number }) => {
+      const newOrder = roomOrder.map((r) =>
+        r === pair.current ? pair.next : r === pair.next ? pair.current : r
+      );
+      const { error } = await supabase
+        .from("app_settings" as any)
+        .upsert({ key: "room_order", value: newOrder } as any);
+      if (error) throw error;
+      return pair;
+    },
+    onSuccess: (pair) => {
+      toast.success(`Vez trocada: Quarto ${pair.next} limpa agora e o Quarto ${pair.current} assume a próxima.`);
+      queryClient.invalidateQueries({ queryKey: ["app_settings"] });
+    },
+    onError: (error) => {
+      toast.error("Erro ao trocar a vez: " + error.message);
     },
   });
 
