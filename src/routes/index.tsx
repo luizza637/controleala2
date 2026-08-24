@@ -351,6 +351,20 @@ function Index() {
                 >
                   {finishCleaning.isPending ? "Salvando..." : "Marcar como Finalizado"}
                 </Button>
+                <Button
+                  variant="outline"
+                  className="w-full h-12 font-semibold"
+                  onClick={() => swapTurns.mutate({ current: responsibleRoom, next: upcomingRoom })}
+                  disabled={swapTurns.isPending}
+                >
+                  <ArrowLeftRight className="w-4 h-4 mr-2" />
+                  {swapTurns.isPending
+                    ? "Trocando..."
+                    : `Trocar vez com o Quarto ${upcomingRoom}`}
+                </Button>
+                <p className="text-[11px] text-slate-500 text-center">
+                  O Quarto {upcomingRoom} limpa hoje e o Quarto {responsibleRoom} assume a próxima data.
+                </p>
               </div>
             )}
             {isPaused && (
