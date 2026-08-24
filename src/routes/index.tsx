@@ -211,21 +211,21 @@ function Index() {
   
   const isCompleted = lastCleaningDate && (isSameDay(lastCleaningDate, now) || (isAfter(lastCleaningDate, scheduledDay) && !isBefore(lastCleaningDate, scheduledDay)));
 
-  // Rotação: 6 -> 7 -> 8 -> 9 -> 10 -> 6
+  // Rotação segue a ordem configurada (padrão: 6 -> 7 -> 8 -> 9 -> 10 -> 6)
+  const nextInOrder = (room: number) => {
+    const idx = roomOrder.indexOf(room);
+    if (idx === -1) return roomOrder[0]!;
+    return roomOrder[(idx + 1) % roomOrder.length]!;
+  };
+
   const getResponsibleRoom = () => {
-    // Se não há logs, começamos pelo 6
-    if (!logs || logs.length === 0) return 6;
-    
-    const lastLog = logs[0];
-    if (!lastLog) return 6;
-    
-    const lastRoom = lastLog.room_number;
-    const lastDate = new Date(lastLog.completed_at);
-    
-    return ((lastRoom - 6 + 1) % 5) + 6;
+    const lastLog = logs?.[0];
+    if (!lastLog) return roomOrder[0]!;
+    return nextInOrder(lastLog.room_number);
   };
 
   const responsibleRoom = getResponsibleRoom();
+  const upcomingRoom = nextInOrder(responsibleRoom);
   const isMyTurn = myRoom === responsibleRoom;
 
   const getStatus = () => {
