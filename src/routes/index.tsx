@@ -246,11 +246,10 @@ function Index() {
     const lastLog = logs[0];
     if (!lastLog) return [];
 
-    const lastRoom = lastLog.room_number;
     const lastDate = new Date(lastLog.completed_at);
-    
-    let nextRoom = ((lastRoom - 6 + 1) % 5) + 6;
-    
+
+    let nextRoom = nextInOrder(lastLog.room_number);
+
     // Começamos a projetar a partir do dia seguinte à última limpeza
     let checkDate = new Date(lastDate);
     checkDate.setHours(0, 0, 0, 0);
@@ -266,7 +265,7 @@ function Index() {
         room: nextRoom
       });
       
-      nextRoom = ((nextRoom - 6 + 1) % 5) + 6;
+      nextRoom = nextInOrder(nextRoom);
     }
     
     return schedule;
