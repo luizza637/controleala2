@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CheckCircle2, AlertCircle, Clock, RotateCcw, History, LayoutDashboard, Calendar, Pause, Play } from "lucide-react";
+import { CheckCircle2, AlertCircle, Clock, RotateCcw, History, LayoutDashboard, Calendar, Pause, Play, ArrowLeftRight } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfWeek, addDays, isSameDay, isAfter, isBefore, subDays, parseISO, nextDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -98,17 +98,21 @@ function Index() {
       const { data, error } = await supabase
         .from("app_settings" as any)
         .select("*")
-        .eq("key", "is_paused")
-        .single();
-      if (error) {
-        if (error.code === 'PGRST116') return { value: false };
-        throw error;
-      }
-      return data as any;
+        .in("key", ["is_paused", "room_order"]);
+      if (error) throw error;
+      const rows = (data ?? []) as any[];
+      return {
+        isPaused: rows.find((r) => r.key === "is_paused")?.value === true,
+        roomOrder: (rows.find((r) => r.key === "room_order")?.value as number[]) ?? ROOMS,
+      };
     },
   });
 
-  const isPaused = appSettings?.value === true;
+  const isPaused = appSettings?.isPaused === true;
+  const roomOrder: number[] =
+    appSettings?.roomOrder && appSettings.roomOrder.length === 5
+      ? appSettings.roomOrder
+      : ROOMS;
 
   const togglePause = useMutation({
     mutationFn: async () => {
@@ -123,6 +127,26 @@ function Index() {
     },
     onError: (error) => {
       toast.error("Erro ao alterar status: " + error.message);
+    },
+  });
+
+  const swapTurns = useMutation({
+    mutationFn: async (pair: { current: number; next: number }) => {
+      const newOrder = roomOrder.map((r) =>
+        r === pair.current ? pair.next : r === pair.next ? pair.current : r
+      );
+      const { error } = await supabase
+        .from("app_settings" as any)
+        .upsert({ key: "room_order", value: newOrder } as any);
+      if (error) throw error;
+      return pair;
+    },
+    onSuccess: (pair) => {
+      toast.success(`Vez trocada: Quarto ${pair.next} limpa agora e o Quarto ${pair.current} assume a próxima.`);
+      queryClient.invalidateQueries({ queryKey: ["app_settings"] });
+    },
+    onError: (error) => {
+      toast.error("Erro ao trocar a vez: " + error.message);
     },
   });
 
@@ -187,21 +211,21 @@ function Index() {
   
   const isCompleted = lastCleaningDate && (isSameDay(lastCleaningDate, now) || (isAfter(lastCleaningDate, scheduledDay) && !isBefore(lastCleaningDate, scheduledDay)));
 
-  // Rotação: 6 -> 7 -> 8 -> 9 -> 10 -> 6
+  // Rotação segue a ordem configurada (padrão: 6 -> 7 -> 8 -> 9 -> 10 -> 6)
+  const nextInOrder = (room: number) => {
+    const idx = roomOrder.indexOf(room);
+    if (idx === -1) return roomOrder[0]!;
+    return roomOrder[(idx + 1) % roomOrder.length]!;
+  };
+
   const getResponsibleRoom = () => {
-    // Se não há logs, começamos pelo 6
-    if (!logs || logs.length === 0) return 6;
-    
-    const lastLog = logs[0];
-    if (!lastLog) return 6;
-    
-    const lastRoom = lastLog.room_number;
-    const lastDate = new Date(lastLog.completed_at);
-    
-    return ((lastRoom - 6 + 1) % 5) + 6;
+    const lastLog = logs?.[0];
+    if (!lastLog) return roomOrder[0]!;
+    return nextInOrder(lastLog.room_number);
   };
 
   const responsibleRoom = getResponsibleRoom();
+  const upcomingRoom = nextInOrder(responsibleRoom);
   const isMyTurn = myRoom === responsibleRoom;
 
   const getStatus = () => {
@@ -222,11 +246,10 @@ function Index() {
     const lastLog = logs[0];
     if (!lastLog) return [];
 
-    const lastRoom = lastLog.room_number;
     const lastDate = new Date(lastLog.completed_at);
-    
-    let nextRoom = ((lastRoom - 6 + 1) % 5) + 6;
-    
+
+    let nextRoom = nextInOrder(lastLog.room_number);
+
     // Começamos a projetar a partir do dia seguinte à última limpeza
     let checkDate = new Date(lastDate);
     checkDate.setHours(0, 0, 0, 0);
@@ -242,7 +265,7 @@ function Index() {
         room: nextRoom
       });
       
-      nextRoom = ((nextRoom - 6 + 1) % 5) + 6;
+      nextRoom = nextInOrder(nextRoom);
     }
     
     return schedule;
@@ -328,6 +351,20 @@ function Index() {
                 >
                   {finishCleaning.isPending ? "Salvando..." : "Marcar como Finalizado"}
                 </Button>
+                <Button
+                  variant="outline"
+                  className="w-full h-12 font-semibold"
+                  onClick={() => swapTurns.mutate({ current: responsibleRoom, next: upcomingRoom })}
+                  disabled={swapTurns.isPending}
+                >
+                  <ArrowLeftRight className="w-4 h-4 mr-2" />
+                  {swapTurns.isPending
+                    ? "Trocando..."
+                    : `Trocar vez com o Quarto ${upcomingRoom}`}
+                </Button>
+                <p className="text-[11px] text-slate-500 text-center">
+                  O Quarto {upcomingRoom} limpa hoje e o Quarto {responsibleRoom} assume a próxima data.
+                </p>
               </div>
             )}
             {isPaused && (
