@@ -98,30 +98,38 @@ function Index() {
       return data;
     },
     onSuccess: async (savedLog) => {
-      const refreshed = await queryClient.fetchQuery({
-        queryKey: ["cleaning_logs"],
-        queryFn: async () => {
-          const { data, error } = await supabase
-            .from("cleaning_logs")
-            .select("*")
-            .order("completed_at", { ascending: false })
-            .limit(15);
-          if (error) throw error;
-          return data ?? [];
-        },
-      });
+      const { data: serverLogs, error } = await supabase
+        .from("cleaning_logs")
+        .select("*")
+        .order("completed_at", { ascending: false })
+        .limit(15);
 
-      // O registro administrativo recém-salvo é a referência da sequência.
-      // Se o Quarto 10 foi registrado, o dashboard deve imediatamente apontar o 9.
-      const nextRoom = nextInConfiguredOrder(savedLog.room_number, roomOrder);
+      if (error) {
+        toast.error("Registro salvo, mas não foi possível atualizar o histórico: " + error.message);
+        return;
+      }
+
+      const mergedLogs = [
+        ...(serverLogs ?? []).filter((log) => log.id !== savedLog.id),
+        { ...savedLog, status: "concluido" },
+      ]
+        .sort((a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime())
+        .slice(0, 15);
+
+      // O responsável é sempre definido pelo registro cronologicamente mais recente.
+      const latestLog = mergedLogs[0];
+      const nextRoom = latestLog
+        ? nextInConfiguredOrder(latestLog.room_number, roomOrder)
+        : roomOrder[0]!;
+
       const dateLabel = format(new Date(`${adminDate}T12:00:00`), "dd/MM/yyyy");
       const message = `Quarto ${savedLog.room_number} registrado em ${dateLabel}. Próximo da vez: Quarto ${nextRoom}.`;
       setAdminSavedMessage(message);
       toast.success(message);
 
-      // Atualiza o histórico e força o dashboard a recalcular o responsável.
-      queryClient.setQueryData(["cleaning_logs"], refreshed);
-      await queryClient.invalidateQueries({ queryKey: ["cleaning_logs"] });
+      // Atualiza imediatamente a fonte usada pelo histórico e pelo dashboard.
+      queryClient.setQueryData(["cleaning_logs"], mergedLogs);
+      await queryClient.refetchQueries({ queryKey: ["cleaning_logs"], type: "active" });
     },
     onError: (error) => toast.error("Erro ao registrar limpeza: " + error.message),
   });
