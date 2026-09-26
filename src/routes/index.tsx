@@ -111,13 +111,17 @@ function Index() {
         },
       });
 
-      const latestLog = refreshed[0] ?? savedLog;
-      const nextRoom = nextInConfiguredOrder(latestLog.room_number, roomOrder);
+      // O registro administrativo recém-salvo é a referência da sequência.
+      // Se o Quarto 10 foi registrado, o dashboard deve imediatamente apontar o 9.
+      const nextRoom = nextInConfiguredOrder(savedLog.room_number, roomOrder);
       const dateLabel = format(new Date(`${adminDate}T12:00:00`), "dd/MM/yyyy");
-      const message = `Quarto ${adminRoom} registrado em ${dateLabel}. Próximo da vez: Quarto ${nextRoom}.`;
+      const message = `Quarto ${savedLog.room_number} registrado em ${dateLabel}. Próximo da vez: Quarto ${nextRoom}.`;
       setAdminSavedMessage(message);
       toast.success(message);
+
+      // Atualiza o histórico e força o dashboard a recalcular o responsável.
       queryClient.setQueryData(["cleaning_logs"], refreshed);
+      await queryClient.invalidateQueries({ queryKey: ["cleaning_logs"] });
     },
     onError: (error) => toast.error("Erro ao registrar limpeza: " + error.message),
   });
