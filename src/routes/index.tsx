@@ -24,6 +24,7 @@ function Index() {
   const [adminPassword, setAdminPassword] = useState("");
   const [adminRoom, setAdminRoom] = useState(6);
   const [adminDate, setAdminDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [adminSavedMessage, setAdminSavedMessage] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   useEffect(() => { const savedRoom = localStorage.getItem("user_room"); if (savedRoom) setMyRoom(parseInt(savedRoom, 10)); }, []);
@@ -81,12 +82,19 @@ function Index() {
     mutationFn: async () => {
       if (!adminAuthenticated) throw new Error("Acesso administrativo não autorizado.");
       if (!adminDate) throw new Error("Selecione a data da limpeza.");
-      const completedAt = `${adminDate}T12:00:00`;
-      const { error } = await supabase.from("cleaning_logs").insert({ room_number: adminRoom, completed_at: completedAt });
+      const selectedDate = new Date(`${adminDate}T12:00:00`);
+      if (Number.isNaN(selectedDate.getTime())) throw new Error("Data inválida.");
+      const completedAt = selectedDate.toISOString();
+      const { data, error } = await supabase.from("cleaning_logs").insert({ room_number: adminRoom, completed_at: completedAt, status: "concluido" }).select("id, room_number, completed_at").single();
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
-      toast.success(`Limpeza do Quarto ${adminRoom} registrada em ${format(new Date(`${adminDate}T12:00:00`), "dd/MM/yyyy")}.`);
+    onSuccess: (savedLog) => {
+      const nextRoom = roomOrder[(roomOrder.indexOf(adminRoom) + 1 + roomOrder.length) % roomOrder.length] ?? ROOMS[0];
+      const dateLabel = format(new Date(`${adminDate}T12:00:00`), "dd/MM/yyyy");
+      const message = `Quarto ${adminRoom} registrado em ${dateLabel}. Próximo da vez: Quarto ${nextRoom}.`;
+      setAdminSavedMessage(message);
+      toast.success(message);
       queryClient.invalidateQueries({ queryKey: ["cleaning_logs"] });
     },
     onError: (error) => toast.error("Erro ao registrar limpeza: " + error.message),
@@ -142,7 +150,7 @@ function Index() {
         </> : <>
           <div className="flex items-center justify-between mb-2"><div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-green-100"><ShieldCheck className="w-5 h-5 text-green-700" /></div><div><h2 className="text-xl font-bold text-slate-900">Painel administrativo</h2><p className="text-sm text-slate-500">Ajustar registros de limpeza.</p></div></div><Button variant="ghost" size="sm" onClick={() => { setAdminAuthenticated(false); setAdminOpen(false); }}><LogOut className="w-4 h-4" /></Button></div>
           <div className="mt-6 rounded-xl border bg-slate-50 p-4 space-y-4"><div><label className="text-sm font-medium text-slate-700">Quarto</label><select className="mt-1 flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm" value={adminRoom} onChange={(e) => setAdminRoom(Number(e.target.value))}>{ROOMS.map((room) => <option key={room} value={room}>Quarto {room}</option>)}</select></div><div><label className="text-sm font-medium text-slate-700">Data em que a limpeza ocorreu</label><Input className="mt-1 bg-white" type="date" value={adminDate} onChange={(e) => setAdminDate(e.target.value)} /></div><Button className="w-full" onClick={() => adminAddCleaning.mutate()} disabled={adminAddCleaning.isPending || !adminDate}>{adminAddCleaning.isPending ? "Registrando..." : "Registrar limpeza retroativa"}</Button></div>
-          <div className="mt-5 p-3 rounded-lg bg-blue-50 border border-blue-100 text-xs text-blue-800">Use esta opção para corrigir os dias em que as limpezas aconteceram enquanto o aplicativo estava parado ou quando algum quarto esqueceu de registrar.</div>
+          {adminSavedMessage && <div className="mt-4 p-4 rounded-xl bg-green-50 border border-green-200 text-sm text-green-800"><p className="font-bold">Registro salvo</p><p className="mt-1">{adminSavedMessage}</p></div>}<div className="mt-5 p-3 rounded-lg bg-blue-50 border border-blue-100 text-xs text-blue-800">Use esta opção para corrigir os dias em que as limpezas aconteceram enquanto o aplicativo estava parado ou quando algum quarto esqueceu de registrar.</div>
         </>}
       </div>
     </div>}
