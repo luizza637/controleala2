@@ -61,7 +61,9 @@ function Index() {
   });
 
   const isPaused = appSettings?.isPaused === true;
-  // A ordem oficial da Ala 2 é fixa: 10 → 9 → 7 → 6 → 8 → 10...\n  // Não usamos uma ordem antiga salva no banco para evitar que o ciclo fique incorreto.\n  const roomOrder: number[] = ROOMS;
+  // A ordem oficial da Ala 2 é fixa: 10 → 9 → 7 → 6 → 8 → 10...
+  // Não usamos uma ordem antiga salva no banco para evitar que o ciclo fique incorreto.
+  const roomOrder: number[] = ROOMS;
 
   const togglePause = useMutation({ mutationFn: async () => { const { error } = await supabase.from("app_settings" as any).upsert({ key: "is_paused", value: !isPaused } as any); if (error) throw error; }, onSuccess: () => { toast.success(isPaused ? "Aplicativo retomado!" : "Aplicativo pausado para férias!"); queryClient.invalidateQueries({ queryKey: ["app_settings"] }); }, onError: (error) => toast.error("Erro ao alterar status: " + error.message) });
   const swapTurns = useMutation({ mutationFn: async (pair: { current: number; next: number }) => { const newOrder = roomOrder.map((r) => r === pair.current ? pair.next : r === pair.next ? pair.current : r); const { error } = await supabase.from("app_settings" as any).upsert({ key: "room_order", value: newOrder } as any); if (error) throw error; return pair; }, onSuccess: (pair) => { toast.success(`Vez trocada: Quarto ${pair.next} limpa agora e o Quarto ${pair.current} assume a próxima.`); queryClient.invalidateQueries({ queryKey: ["app_settings"] }); }, onError: (error) => toast.error("Erro ao trocar a vez: " + error.message) });
