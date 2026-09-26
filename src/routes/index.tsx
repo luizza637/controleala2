@@ -78,6 +78,12 @@ function Index() {
     }
   };
 
+  const nextInConfiguredOrder = (room: number, order: number[]) => {
+    const idx = order.indexOf(room);
+    if (idx === -1) return order[0]!;
+    return order[(idx + 1) % order.length]!;
+  };
+
   const adminAddCleaning = useMutation({
     mutationFn: async () => {
       if (!adminAuthenticated) throw new Error("Acesso administrativo não autorizado.");
@@ -89,13 +95,27 @@ function Index() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (savedLog) => {
-      const nextRoom = roomOrder[(roomOrder.indexOf(adminRoom) + 1 + roomOrder.length) % roomOrder.length] ?? ROOMS[0];
+    onSuccess: async (savedLog) => {
+      const refreshed = await queryClient.fetchQuery({
+        queryKey: ["cleaning_logs"],
+        queryFn: async () => {
+          const { data, error } = await supabase
+            .from("cleaning_logs")
+            .select("*")
+            .order("completed_at", { ascending: false })
+            .limit(15);
+          if (error) throw error;
+          return data ?? [];
+        },
+      });
+
+      const latestLog = refreshed[0] ?? savedLog;
+      const nextRoom = nextInConfiguredOrder(latestLog.room_number, roomOrder);
       const dateLabel = format(new Date(`${adminDate}T12:00:00`), "dd/MM/yyyy");
       const message = `Quarto ${adminRoom} registrado em ${dateLabel}. Próximo da vez: Quarto ${nextRoom}.`;
       setAdminSavedMessage(message);
       toast.success(message);
-      queryClient.invalidateQueries({ queryKey: ["cleaning_logs"] });
+      queryClient.setQueryData(["cleaning_logs"], refreshed);
     },
     onError: (error) => toast.error("Erro ao registrar limpeza: " + error.message),
   });
@@ -110,7 +130,7 @@ function Index() {
   const lastCleaning = logs?.[0];
   const lastCleaningDate = lastCleaning ? new Date(lastCleaning.completed_at) : null;
   const isCompleted = !!lastCleaningDate && (isSameDay(lastCleaningDate, now) || (isAfter(lastCleaningDate, scheduledDay) && !isBefore(lastCleaningDate, scheduledDay)));
-  const nextInOrder = (room: number) => { const idx = roomOrder.indexOf(room); if (idx === -1) return roomOrder[0]!; return roomOrder[(idx + 1) % roomOrder.length]!; };
+  const nextInOrder = (room: number) => nextInConfiguredOrder(room, roomOrder);
   const responsibleRoom = lastCleaning ? nextInOrder(lastCleaning.room_number) : roomOrder[0]!;
   const upcomingRoom = nextInOrder(responsibleRoom);
   const isMyTurn = myRoom === responsibleRoom;
